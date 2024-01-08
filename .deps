@@ -1,4 +1,6 @@
 kube-relay: \
+./cmd/kube-relay/option.go \
 ./cmd/kube-relay/root.go \
+./cmd/kube-relay/app.go \
 ./cmd/kube-relay/main.go \
 
