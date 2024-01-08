@@ -1,2 +1,2 @@
 # kube-relay
-kube-relay, to reduce the pressure of kube-apiserver when lot's of apps subscribing  it
+kube-relay, to reduce the pressure of kube-apiserver when lot's of apps subscribing it

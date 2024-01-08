@@ -1,0 +1,4 @@
+kube-relay: \
+./cmd/kube-relay/root.go \
+./cmd/kube-relay/main.go \
+
