@@ -1,6 +1,9 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/anhk/kube-relay/pkg/log"
+	"github.com/spf13/cobra"
+)
 
 var option = Option{}
 
@@ -17,6 +20,8 @@ func main() {
 	rootCmd.PersistentFlags().StringVar(&option.ApiServer, "apiserver", "", "the address of apiserver")
 
 	rootCmd.PersistentFlags().StringArrayVar(&option.ResourceNames, "resources",
-		[]string{"services", "endpointslices.discovery.k8s.io"}, "resources to relay")
+		[]string{"services", "endpointslices.discovery.k8s.io/v1"}, "resources to relay")
+
+	rootCmd.PersistentFlags().IntVar(&log.Level, "loglevel", log.LEVEL_INFO, "log level")
 	rootCmd.Execute()
 }

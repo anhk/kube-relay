@@ -1,26 +1,38 @@
 package main
 
 import (
+	"sync"
+
 	"github.com/anhk/kube-relay/pkg/log"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/cache"
 )
 
 type App struct {
+	kubeClient dynamic.Interface
+
+	resMap sync.Map
 }
 
 func NewApp() *App {
 	return &App{}
 }
 
-func (app *App) Run(option *Option) error {
-	for _, resource := range option.ResourceNames {
-		gvr := processResource(resource)
-		log.Info("resource=%v, group=%v, version=%v", gvr.Resource, gvr.Group, gvr.Version)
+func (app *App) Run(option *Option) (err error) {
+	if app.kubeClient, err = CreateDynamicClient(option.KubeConfig, option.ApiServer); err != nil {
+		return err
 	}
-	// Step 1# 检查所有资源都存在
+	var listCached []cache.InformerSynced
+	for _, resName := range option.ResourceNames {
+		var resHandler = NewResourceHandlerByDynamicClient(processResource(resName), app.kubeClient)
+		app.resMap.Store(resHandler.gvr, resHandler)
+		listCached = append(listCached, resHandler.Run())
+	}
 
-	// Step 2# 启动Informer，等待Cache完成
+	if ok := cache.WaitForCacheSync(wait.NeverStop, listCached...); ok {
+		log.Info("cache ok")
+	}
 
-	// Step 3# 启动侦听
-
-	return nil
+	select {}
 }
