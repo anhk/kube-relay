@@ -50,12 +50,7 @@ func NewRouter() *Router {
 
 // 返回核心API列表
 func (r *Router) apiList(ctx *gin.Context) {
-	ctx.Writer.Write([]byte(`{
-	"kind": "APIVersions",
-	"versions": [
-	  "v1"
-	]
-  }`))
+	ctx.Writer.Write([]byte(`{"kind": "APIVersions", "versions": [ "v1" ]}`))
 }
 
 func (r *Router) apiCoreList(ctx *gin.Context) {
