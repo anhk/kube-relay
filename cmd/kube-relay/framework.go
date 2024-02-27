@@ -40,6 +40,7 @@ type Router struct {
 }
 
 func NewRouter() *Router {
+	gin.SetMode(gin.ReleaseMode)
 	r := &Router{r: gin.Default()}
 	r.r.GET("/api", r.apiList)
 	r.r.GET("/api/v1", r.apiCoreList)
@@ -53,12 +54,6 @@ func (r *Router) apiList(ctx *gin.Context) {
 	"kind": "APIVersions",
 	"versions": [
 	  "v1"
-	],
-	"serverAddressByClientCIDRs": [
-	  {
-		"clientCIDR": "0.0.0.0/0",
-		"serverAddress": "192.168.1.222:6443"
-	  }
 	]
   }`))
 }
@@ -73,11 +68,7 @@ func (r *Router) apiCoreList(ctx *gin.Context) {
 				"singularName": "service",
 				"namespaced": true,
 				"kind": "Service",
-				"verbs": [
-				  "get",
-				  "list",
-				  "watch"
-				],
+				"verbs": [ "get",  "list",  "watch"	],
 				"storageVersionHash": "0/CO1lhkEBI="
 			  },
 		]
