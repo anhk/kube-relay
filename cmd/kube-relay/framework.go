@@ -35,6 +35,12 @@ import (
 //     &timeoutSeconds=549
 //     &watch=true
 
+// - /api ==> "kind": "APIVersions",
+// - /api/v1 ==> "kind": "APIResourceList",
+// - /apis ==> "kind": "APIGroupList",
+// - /apis/discovery.k8s.io ==> "kind": "APIGroup",
+// - /apis/discovery.k8s.io/v1 ==> "kind": "APIResourceList",
+
 type Router struct {
 	r *gin.Engine
 }
