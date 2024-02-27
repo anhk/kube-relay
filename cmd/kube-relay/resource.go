@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/anhk/kube-relay/pkg/log"
+	"github.com/gin-gonic/gin"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -14,6 +15,10 @@ import (
 type ResourceHandler struct {
 	GVR    schema.GroupVersionResource
 	Lister cache.GenericLister
+}
+
+func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
+
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/anhk/kube-relay/pkg/log"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/cache"
@@ -34,5 +35,15 @@ func (app *App) Run(option *Option) (err error) {
 		log.Info("cache ok")
 	}
 
-	select {}
+	r := NewRouter()
+
+	app.resMap.Range(func(_gvr, _resHandler any) bool {
+		gvr := _gvr.(schema.GroupVersionResource)
+		resHandler := _resHandler.(*ResourceHandler)
+
+		r.Watch(&gvr, resHandler.WatchFunc)
+		return true
+	})
+
+	return r.Run(option.Port)
 }

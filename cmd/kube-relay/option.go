@@ -5,4 +5,5 @@ type Option struct {
 	ApiServer  string
 
 	ResourceNames []string
+	Port          uint16 // Listen Port
 }
