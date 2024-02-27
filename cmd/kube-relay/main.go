@@ -8,8 +8,9 @@ import (
 var option = Option{}
 
 var rootCmd = &cobra.Command{
-	Use:     "kube-relay, to reduce the pressure of kube-apiserver when lot's of apps subscribing it",
-	Example: "  kube-relay --resources services,endpointslice.discovery.k8s.io/v1",
+	Use:          "kube-relay, to reduce the pressure of kube-apiserver when lot's of apps subscribing it",
+	Example:      "  kube-relay --resources services,endpointslice.discovery.k8s.io/v1",
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return NewApp().Run(&option)
 	},
