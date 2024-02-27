@@ -11,7 +11,7 @@ endif
 all: dep kube-relay
 
 kube-relay:
-	CGO_ENABLED=0 go build -gcflags "-N -l" -o $@ ./cmd/kube-relay
+	CGO_ENABLED=0 go build -mod vendor -gcflags "-N -l" -o $@ ./cmd/kube-relay
 
 clean:
 	rm -fr kube-relay
