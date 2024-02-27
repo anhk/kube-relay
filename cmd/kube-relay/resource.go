@@ -12,8 +12,8 @@ import (
 )
 
 type ResourceHandler struct {
-	gvr    schema.GroupVersionResource
-	client dynamic.Interface
+	GVR    schema.GroupVersionResource
+	Lister cache.GenericLister
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
@@ -24,7 +24,7 @@ func (res *ResourceHandler) AddFunc(obj any) {
 	// log.Debug("[%v] GroupVersionKind: %v", res.gvr.Resource, kind.GroupVersionKind())
 	// log.Debug("GetResourceVersion: %v", o.GetResourceVersion())
 
-	log.Debug("[%v] add [%v] %v/%v", res.gvr.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
+	log.Debug("[%v] add [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
 }
 
 func (res *ResourceHandler) UpdateFunc(oldObj, newObj any) {
@@ -35,18 +35,18 @@ func (res *ResourceHandler) DeleteFunc(obj any) {
 	log.Debug("delete")
 }
 
-func (res *ResourceHandler) Run() cache.InformerSynced {
-	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(res.client, 30*time.Minute, "", nil)
-	informer := factory.ForResource(res.gvr)
+func (res *ResourceHandler) RunWithDynamicClient(dynamicClient dynamic.Interface) cache.InformerSynced {
+	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, 30*time.Minute, "", nil)
+	informer := factory.ForResource(res.GVR)
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: res.AddFunc, UpdateFunc: res.UpdateFunc, DeleteFunc: res.DeleteFunc,
 	})
 	go informer.Informer().Run(wait.NeverStop)
+	res.Lister = informer.Lister()
 	return informer.Informer().HasSynced
 }
 
-func NewResourceHandlerByDynamicClient(gvr schema.GroupVersionResource,
-	dynamicClient dynamic.Interface) *ResourceHandler {
+func NewResourceHandler(gvr schema.GroupVersionResource) *ResourceHandler {
 	log.Info("resource=%v, group=%v, version=%v", gvr.Resource, gvr.Group, gvr.Version)
-	return &ResourceHandler{gvr: gvr, client: dynamicClient}
+	return &ResourceHandler{GVR: gvr}
 }

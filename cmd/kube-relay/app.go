@@ -25,9 +25,9 @@ func (app *App) Run(option *Option) (err error) {
 	}
 	var listCached []cache.InformerSynced
 	for _, resName := range option.ResourceNames {
-		var resHandler = NewResourceHandlerByDynamicClient(processResource(resName), app.kubeClient)
-		app.resMap.Store(resHandler.gvr, resHandler)
-		listCached = append(listCached, resHandler.Run())
+		var resHandler = NewResourceHandler(processResource(resName))
+		app.resMap.Store(resHandler.GVR, resHandler)
+		listCached = append(listCached, resHandler.RunWithDynamicClient(app.kubeClient))
 	}
 
 	if ok := cache.WaitForCacheSync(wait.NeverStop, listCached...); ok {
