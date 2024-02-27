@@ -42,18 +42,69 @@ type Router struct {
 func NewRouter() *Router {
 	r := &Router{r: gin.Default()}
 	r.r.GET("/api", r.apiList)
+	r.r.GET("/api/v1", r.apiCoreList)
 	r.r.GET("/apis", r.apisList)
 	return r
 }
 
 // 返回核心API列表
 func (r *Router) apiList(ctx *gin.Context) {
+	ctx.Writer.Write([]byte(`{
+	"kind": "APIVersions",
+	"versions": [
+	  "v1"
+	],
+	"serverAddressByClientCIDRs": [
+	  {
+		"clientCIDR": "0.0.0.0/0",
+		"serverAddress": "192.168.1.222:6443"
+	  }
+	]
+  }`))
+}
 
+func (r *Router) apiCoreList(ctx *gin.Context) {
+	ctx.Writer.Write([]byte(`{
+		"kind": "APIResourceList",
+		"groupVersion": "v1",
+		"resources": [
+			{
+				"name": "services",
+				"singularName": "service",
+				"namespaced": true,
+				"kind": "Service",
+				"verbs": [
+				  "get",
+				  "list",
+				  "watch"
+				],
+				"storageVersionHash": "0/CO1lhkEBI="
+			  },
+		]
+	}`))
 }
 
 // 返回非核心API列表
 func (r *Router) apisList(ctx *gin.Context) {
-
+	ctx.Writer.Write([]byte(`{
+		"kind": "APIGroupList",
+		"apiVersion": "v1",
+		"groups": [
+		  {
+			"name": "discovery.k8s.io",
+			"versions": [
+			  {
+				"groupVersion": "discovery.k8s.io/v1",
+				"version": "v1"
+			  }
+			],
+			"preferredVersion": {
+			  "groupVersion": "discovery.k8s.io/v1",
+			  "version": "v1"
+			}
+		  }
+		]
+	  }`))
 }
 
 func (r *Router) Watch(gvr *schema.GroupVersionResource, fn gin.HandlerFunc) {
