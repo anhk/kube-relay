@@ -1,6 +1,8 @@
 package main
 
-import "github.com/anhk/kube-relay/pkg/log"
+import (
+	"github.com/anhk/kube-relay/pkg/log"
+)
 
 type App struct {
 }
@@ -11,7 +13,8 @@ func NewApp() *App {
 
 func (app *App) Run(option *Option) error {
 	for _, resource := range option.ResourceNames {
-		log.Info("resource: %v", resource)
+		gvr := processResource(resource)
+		log.Info("resource=%v, group=%v, version=%v", gvr.Resource, gvr.Group, gvr.Version)
 	}
 	return nil
 }

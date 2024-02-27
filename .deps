@@ -3,5 +3,6 @@ kube-relay: \
 ./cmd/kube-relay/option.go \
 ./cmd/kube-relay/main.go \
 ./cmd/kube-relay/root.go \
+./cmd/kube-relay/utils.go \
 ./pkg/log/log.go \
 
