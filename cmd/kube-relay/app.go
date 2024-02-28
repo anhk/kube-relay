@@ -40,12 +40,12 @@ func (app *App) Run(option *Option) (err error) {
 		app.resMap[resHandler.GVR] = resHandler
 	}
 
-	// Step. 2# 建立动态客户端
+	// Step. 3# 建立动态客户端
 	if app.dynamicClient, err = CreateDynamicClient(option.KubeConfig, option.ApiServer); err != nil {
 		return err
 	}
 
-	// Step. 3# 同步数据直到完成缓存
+	// Step. 4# 同步数据直到完成缓存
 	var listCached []cache.InformerSynced
 	for _, resHandler := range app.resMap {
 		listCached = append(listCached, resHandler.RunWithDynamicClient(app.dynamicClient))
@@ -55,7 +55,7 @@ func (app *App) Run(option *Option) (err error) {
 		log.Info("cache ok")
 	}
 
-	// Step. 4# 启动HTTP(s)侦听
+	// Step. 5# 启动HTTP(s)侦听
 	gin.SetMode(gin.ReleaseMode)
 	app.Engine = gin.Default()
 

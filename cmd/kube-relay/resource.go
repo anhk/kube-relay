@@ -55,7 +55,7 @@ func (res *ResourceHandler) GetInfoByKubeClient(kubeClient *kubernetes.Clientset
 		return err
 	}
 	for _, v := range resourceList.APIResources {
-		if v.Name == res.GVR.Group {
+		if v.Name == res.GVR.Resource {
 			res.apiRes = v
 			return nil
 		}
