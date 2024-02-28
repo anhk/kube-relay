@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/anhk/kube-relay/pkg/log"
@@ -59,7 +60,22 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 	}
 
 	log.Debug("watch: %v", watch)
-	ctx.JSON(200, metav1.WatchEvent{})
+
+	list, err := res.Lister.List(labels.Everything())
+	if err != nil {
+		ctx.AbortWithError(502, err)
+		return
+	}
+
+	for _, obj := range list {
+		event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
+		ctx.Writer.Write([]byte(event.String()))
+	}
+
+	ctx.Stream(func(w io.Writer) bool {
+		time.Sleep(time.Second)
+		return true
+	})
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
