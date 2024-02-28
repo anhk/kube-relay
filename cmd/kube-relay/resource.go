@@ -7,6 +7,7 @@ import (
 	"github.com/anhk/kube-relay/pkg/log"
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -23,7 +24,18 @@ type ResourceHandler struct {
 }
 
 func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
-	ctx.JSON(200, nil)
+	namespace := ctx.Param("namespace")
+	name := ctx.Param("name")
+
+	log.Error("HTTP: [%v] %v/%v", res.GVR, namespace, name)
+
+	list, err := res.Lister.List(labels.Everything())
+	if err != nil {
+		ctx.AbortWithError(502, err)
+		return
+	}
+
+	ctx.JSON(200, list)
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
