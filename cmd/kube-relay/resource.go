@@ -19,6 +19,7 @@ type ResourceHandler struct {
 	GVR    schema.GroupVersionResource
 	Lister cache.GenericLister
 	apiRes metav1.APIResource
+	apiGr  metav1.APIGroup
 }
 
 func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
@@ -57,6 +58,9 @@ func (res *ResourceHandler) GetInfoByKubeClient(kubeClient *kubernetes.Clientset
 	for _, v := range resourceList.APIResources {
 		if v.Name == res.GVR.Resource {
 			res.apiRes = v
+			res.apiGr.Name = res.GVR.Group
+			res.apiGr.Versions = []metav1.GroupVersionForDiscovery{{GroupVersion: groupVersion, Version: res.GVR.Version}}
+			res.apiGr.PreferredVersion = res.apiGr.Versions[0]
 			return nil
 		}
 	}

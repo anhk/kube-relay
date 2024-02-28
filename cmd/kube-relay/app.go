@@ -70,6 +70,17 @@ func (app *App) SetApiListFunc() {
 	app.Engine.GET("/api", app.APIVersion)
 	app.Engine.GET("/apis", app.APIGroupList)
 	app.Engine.GET("/api/v1", app.APICoreResourceList)
+
+	gvMap := make(map[metav1.GroupVersion]struct{})
+
+	for gvr := range app.resMap {
+		gv := metav1.GroupVersion{Group: gvr.Group, Version: gvr.Version}
+		gvMap[gv] = struct{}{}
+	}
+
+	for gv := range gvMap {
+		app.Engine.GET(fmt.Sprintf("/apis/%v/%v", gv.Group, gv.Version), app.APIResourceListByGroupVersion(gv.Group, gv.Version))
+	}
 }
 
 // 设置Watch资源的回调函数
@@ -95,27 +106,39 @@ func (app *App) APICoreResourceList(ctx *gin.Context) {
 	apiResourceList := &metav1.APIResourceList{}
 	apiResourceList.Kind = "APIResourceList"
 	apiResourceList.GroupVersion = "v1"
-	for gvr := range app.resMap {
+	for gvr, resHandler := range app.resMap {
 		if gvr.Group != "" { // 非核心API
 			continue
 		}
-		res := metav1.APIResource{
-			Name:               gvr.Resource,
-			SingularName:       "service",                        // TODO
-			Namespaced:         true,                             // TODO
-			ShortNames:         []string{"svc"},                  // TODO
-			Kind:               "Service",                        // TODO
-			Verbs:              []string{"get", "list", "watch"}, // TODO
-			StorageVersionHash: "",                               // TODO
-		}
-		apiResourceList.APIResources = append(apiResourceList.APIResources, res)
+		apiResourceList.APIResources = append(apiResourceList.APIResources, resHandler.apiRes)
 	}
-
 	ctx.JSON(200, apiResourceList)
 }
 
 // 返回非核心API列表
 func (app *App) APIGroupList(ctx *gin.Context) {
 	apiGroupList := &metav1.APIGroupList{}
+	apiGroupList.Kind = "APIGroupList"
+	apiGroupList.APIVersion = "v1"
+	for gvr, resHandler := range app.resMap {
+		if gvr.Group == "" { // 核心API
+			continue
+		}
+		apiGroupList.Groups = append(apiGroupList.Groups, resHandler.apiGr)
+	}
 	ctx.JSON(200, apiGroupList)
+}
+
+func (app *App) APIResourceListByGroupVersion(gr, ver string) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		apiResourceList := &metav1.APIResourceList{}
+		apiResourceList.Kind = "APIResourceList"
+		apiResourceList.APIVersion = "v1"
+		for gvr, resHandler := range app.resMap {
+			if gvr.Group == gr && gvr.Version == ver {
+				apiResourceList.APIResources = append(apiResourceList.APIResources, resHandler.apiRes)
+			}
+		}
+		ctx.JSON(200, apiResourceList)
+	}
 }
