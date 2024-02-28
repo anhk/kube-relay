@@ -8,17 +8,22 @@ else ifeq ($(ARCH), aarch64)
         ARCH=arm64
 endif
 
-all: dep kube-relay
+OBJS=kube-relay test
+
+all: dep ${OBJS}
 
 kube-relay:
 	CGO_ENABLED=0 go build -mod vendor -gcflags "-N -l" -o $@ ./cmd/kube-relay
 
+test:
+	go build -mod vendor -gcflags "-N -l" -o $@ ./cmd/test
+
 clean:
-	rm -fr kube-relay
+	rm -fr ${OBJS}
 
 -include .deps
 dep:
-	echo 'kube-relay: \\' > .deps
+	echo '${OBJS}: \\' > .deps
 	find . -path ./vendor -prune -o -name '*.go' -print | awk '{print $$0 " \\"}' >> .deps
 	echo "" >> .deps
 
