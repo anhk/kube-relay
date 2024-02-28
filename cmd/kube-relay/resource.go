@@ -30,10 +30,9 @@ type ListWrapper struct {
 	Items           []runtime.Object `json:"items"`
 }
 
-func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
+func (res *ResourceHandler) ListFunc(ctx *gin.Context) {
 	namespace := ctx.Param("namespace")
 	name := ctx.Param("name")
-
 	log.Debug("HTTP: [%v] %v/%v", res.GVR, namespace, name)
 
 	list, err := res.Lister.List(labels.Everything())
@@ -46,13 +45,21 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 	lw.APIVersion = res.GVR.Version
 	lw.Kind = fmt.Sprintf("%vList", res.apiRes.Kind)
 	lw.Items = list
-	lw.Metadata.ResourceVersion = "11310"
-
-	// for i := range lw.Items {
-	// lw.Items[i].GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{})
-	// }
 
 	ctx.JSON(200, lw)
+}
+
+func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
+
+	watch := ctx.Query("watch")
+
+	if watch != "1" && watch != "true" {
+		res.ListFunc(ctx)
+		return
+	}
+
+	log.Debug("watch: %v", watch)
+	ctx.JSON(200, metav1.WatchEvent{})
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
