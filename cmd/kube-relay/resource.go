@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/anhk/kube-relay/pkg/k8s"
 	"github.com/anhk/kube-relay/pkg/log"
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +25,8 @@ type ResourceHandler struct {
 	Lister cache.GenericLister
 	apiRes metav1.APIResource
 	apiGr  metav1.APIGroup
+
+	// TODO: FIFO 队列
 }
 
 type ListWrapper struct {
@@ -46,11 +50,13 @@ func (res *ResourceHandler) ListFunc(ctx *gin.Context) {
 	lw.APIVersion = res.GVR.Version
 	lw.Kind = fmt.Sprintf("%vList", res.apiRes.Kind)
 	lw.Items = list
+	lw.Metadata.ResourceVersion = "1"
 
 	ctx.JSON(200, lw)
 }
 
 func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
+	ctx.Header("content-type", "application/json")
 
 	watch := ctx.Query("watch")
 
@@ -58,8 +64,8 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 		res.ListFunc(ctx)
 		return
 	}
-
-	log.Debug("watch: %v", watch)
+	resourceVersion := ctx.Query("resourceVersion")
+	log.Debug("watch: %v, resourceVersion: %v", watch, resourceVersion)
 
 	list, err := res.Lister.List(labels.Everything())
 	if err != nil {
@@ -69,7 +75,8 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 
 	for _, obj := range list {
 		event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
-		ctx.Writer.Write([]byte(event.String()))
+		data, _ := json.Marshal(event)
+		ctx.Writer.Write(data)
 	}
 
 	ctx.Stream(func(w io.Writer) bool {
@@ -79,7 +86,7 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
-	o := objectToUnstructured(obj)
+	o := k8s.ObjectToUnstructured(obj)
 	// log.Debug("[%v] GetAPIVersion: %v", res.gvr.Resource, o.GetAPIVersion())
 
 	// kind := o.GetObjectKind()

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/anhk/kube-relay/pkg/k8s"
 	"github.com/anhk/kube-relay/pkg/log"
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,13 +28,13 @@ func NewApp() *App {
 
 func (app *App) Run(option *Option) (err error) {
 	// Step. 1# 创建Kubernetes客户端
-	if app.kubeClient, err = CreateKubeClient(option.KubeConfig, option.ApiServer); err != nil {
+	if app.kubeClient, err = k8s.CreateKubeClient(option.KubeConfig, option.ApiServer); err != nil {
 		return err
 	}
 
 	// Step. 2# 预处理资源
 	for _, resName := range option.ResourceNames {
-		var resHandler = NewResourceHandler(processResource(resName))
+		var resHandler = NewResourceHandler(k8s.ProcessResource(resName))
 		if err := resHandler.GetInfoByKubeClient(app.kubeClient); err != nil {
 			return err
 		}
@@ -41,7 +42,7 @@ func (app *App) Run(option *Option) (err error) {
 	}
 
 	// Step. 3# 建立动态客户端
-	if app.dynamicClient, err = CreateDynamicClient(option.KubeConfig, option.ApiServer); err != nil {
+	if app.dynamicClient, err = k8s.CreateDynamicClient(option.KubeConfig, option.ApiServer); err != nil {
 		return err
 	}
 
