@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -23,11 +24,17 @@ type ResourceHandler struct {
 	apiGr  metav1.APIGroup
 }
 
+type ListWrapper struct {
+	metav1.TypeMeta `json:",inline"`
+	Metadata        metav1.ListMeta  `json:"metadata"`
+	Items           []runtime.Object `json:"items"`
+}
+
 func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 	namespace := ctx.Param("namespace")
 	name := ctx.Param("name")
 
-	log.Error("HTTP: [%v] %v/%v", res.GVR, namespace, name)
+	log.Debug("HTTP: [%v] %v/%v", res.GVR, namespace, name)
 
 	list, err := res.Lister.List(labels.Everything())
 	if err != nil {
@@ -35,7 +42,17 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(200, list)
+	lw := &ListWrapper{}
+	lw.APIVersion = res.GVR.Version
+	lw.Kind = fmt.Sprintf("%vList", res.apiRes.Kind)
+	lw.Items = list
+	lw.Metadata.ResourceVersion = "11310"
+
+	// for i := range lw.Items {
+	// lw.Items[i].GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{})
+	// }
+
+	ctx.JSON(200, lw)
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
