@@ -27,6 +27,6 @@ func main() {
 		"federalendpoints.dlb.jdt.com/v1",
 	}, "resources to relay")
 
-	rootCmd.PersistentFlags().IntVar(&log.Level, "loglevel", log.LEVEL_INFO, "log level")
+	rootCmd.PersistentFlags().IntVarP(&log.Level, "verbose", "v", log.LEVEL_INFO, "log level")
 	rootCmd.Execute()
 }
