@@ -1,24 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/anhk/kube-relay/pkg/log"
 	"github.com/gin-gonic/gin"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
 type ResourceHandler struct {
 	GVR    schema.GroupVersionResource
 	Lister cache.GenericLister
+	apiRes metav1.APIResource
 }
 
 func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
-
+	ctx.JSON(200, nil)
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
@@ -38,6 +42,26 @@ func (res *ResourceHandler) UpdateFunc(oldObj, newObj any) {
 
 func (res *ResourceHandler) DeleteFunc(obj any) {
 	log.Debug("delete")
+}
+
+func (res *ResourceHandler) GetInfoByKubeClient(kubeClient *kubernetes.Clientset) error {
+	var groupVersion = "v1" // CoreAPI
+	if res.GVR.Group != "" {
+		groupVersion = fmt.Sprintf("%v/%v", res.GVR.Group, res.GVR.Version)
+	}
+
+	resourceList, err := kubeClient.DiscoveryClient.ServerResourcesForGroupVersion(groupVersion)
+	if err != nil {
+		return err
+	}
+	for _, v := range resourceList.APIResources {
+		if v.Name == res.GVR.Group {
+			res.apiRes = v
+			return nil
+		}
+	}
+
+	return fmt.Errorf("%v not found", res.GVR)
 }
 
 func (res *ResourceHandler) RunWithDynamicClient(dynamicClient dynamic.Interface) cache.InformerSynced {

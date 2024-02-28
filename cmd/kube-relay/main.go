@@ -21,8 +21,11 @@ func main() {
 	rootCmd.PersistentFlags().StringVar(&option.ApiServer, "apiserver", "", "the address of apiserver")
 	rootCmd.PersistentFlags().Uint16Var(&option.Port, "port", 8443, "listen port")
 
-	rootCmd.PersistentFlags().StringArrayVar(&option.ResourceNames, "resources",
-		[]string{"services", "endpointslices.discovery.k8s.io/v1"}, "resources to relay")
+	rootCmd.PersistentFlags().StringArrayVar(&option.ResourceNames, "resources", []string{
+		"services",
+		"endpointslices.discovery.k8s.io/v1",
+		"federalendpoints.dlb.jdt.com/v1",
+	}, "resources to relay")
 
 	rootCmd.PersistentFlags().IntVar(&log.Level, "loglevel", log.LEVEL_INFO, "log level")
 	rootCmd.Execute()

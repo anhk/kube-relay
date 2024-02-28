@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -30,7 +31,7 @@ func processResource(arg string) schema.GroupVersionResource {
 	return gvr
 }
 
-func CreateDynamicClient(kubeConfigFile, apiServer string) (dynamic.Interface, error) {
+func processRestConfig(kubeConfigFile, apiServer string) (*rest.Config, error) {
 	var clientconfig *rest.Config
 	var err error
 
@@ -43,6 +44,22 @@ func CreateDynamicClient(kubeConfigFile, apiServer string) (dynamic.Interface, e
 	}
 	clientconfig.QPS = 1000
 	clientconfig.Burst = 5000
+	return clientconfig, nil
+}
+
+func CreateKubeClient(kubeConfigFile, apiServer string) (*kubernetes.Clientset, error) {
+	clientconfig, err := processRestConfig(kubeConfigFile, apiServer)
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(clientconfig)
+}
+
+func CreateDynamicClient(kubeConfigFile, apiServer string) (dynamic.Interface, error) {
+	clientconfig, err := processRestConfig(kubeConfigFile, apiServer)
+	if err != nil {
+		return nil, err
+	}
 	return dynamic.NewForConfig(clientconfig)
 }
 
