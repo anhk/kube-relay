@@ -134,7 +134,9 @@ func (app *App) APIResourceListByGroupVersion(gr, ver string) func(*gin.Context)
 	return func(ctx *gin.Context) {
 		apiResourceList := &metav1.APIResourceList{}
 		apiResourceList.Kind = "APIResourceList"
-		apiResourceList.APIVersion = "v1"
+		apiResourceList.APIVersion = ver
+		apiResourceList.GroupVersion = fmt.Sprintf("%v/%v", gr, ver)
+
 		for gvr, resHandler := range app.resMap {
 			if gvr.Group == gr && gvr.Version == ver {
 				apiResourceList.APIResources = append(apiResourceList.APIResources, resHandler.apiRes)
