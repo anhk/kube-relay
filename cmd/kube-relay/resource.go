@@ -66,6 +66,7 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 	}
 	resourceVersion := ctx.Query("resourceVersion")
 	log.Debug("watch: %v, resourceVersion: %v", watch, resourceVersion)
+	// TODO: resourceVersion如果不存在，返回410 Gone
 
 	list, err := res.Lister.List(labels.Everything())
 	if err != nil {
