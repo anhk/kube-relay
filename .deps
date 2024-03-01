@@ -10,4 +10,5 @@ kube-relay test: \
 ./cmd/test/list.go \
 ./pkg/k8s/k8s.go \
 ./pkg/log/log.go \
+./pkg/cond/cond.go \
 

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
+	"github.com/anhk/kube-relay/pkg/cond"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,12 +27,12 @@ type ResourceFifo struct {
 	items map[string]*Item // key: version.toString()
 	list  list.List        // LRU列表
 
-	cond *sync.Cond
+	cond *cond.Cond
 }
 
 func NewResourceFifo() *ResourceFifo {
 	rf := &ResourceFifo{version: 1, items: make(map[string]*Item)}
-	rf.cond = sync.NewCond(&rf.mu)
+	rf.cond = cond.NewCond(&rf.mu)
 	return rf
 }
 
@@ -93,8 +95,8 @@ func (fifo *ResourceFifo) Wait(resourceVersion string) error {
 	}
 
 	fifo.cond.L.Lock()
-	for resVerion == fifo.version {
-		fifo.cond.Wait()
+	if resVerion == fifo.version {
+		fifo.cond.WaitWithTimeout(time.Second)
 	}
 	fifo.cond.L.Unlock()
 	return nil

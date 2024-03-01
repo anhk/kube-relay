@@ -92,6 +92,7 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 		}
 		resourceVersion = curVersion
 	}
+	ctx.Writer.Flush()
 
 	ctx.Stream(func(w io.Writer) bool {
 		for {
@@ -103,6 +104,9 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 			if err != nil {
 				ctx.AbortWithError(410, err)
 				return false
+			}
+			if len(list) == 0 { // avoid CLOSE_WAIT
+				return true
 			}
 			for _, obj := range list {
 				data, _ := json.Marshal(obj)
