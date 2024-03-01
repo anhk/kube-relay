@@ -26,7 +26,7 @@ type ResourceHandler struct {
 	apiRes metav1.APIResource
 	apiGr  metav1.APIGroup
 
-	// TODO: FIFO 队列
+	fifo *ResourceFifo
 }
 
 type ListWrapper struct {
@@ -141,5 +141,5 @@ func (res *ResourceHandler) RunWithDynamicClient(dynamicClient dynamic.Interface
 
 func NewResourceHandler(gvr schema.GroupVersionResource) *ResourceHandler {
 	log.Info("resource=%v, group=%v, version=%v", gvr.Resource, gvr.Group, gvr.Version)
-	return &ResourceHandler{GVR: gvr}
+	return &ResourceHandler{GVR: gvr, fifo: NewResourceFifo()}
 }
