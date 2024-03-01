@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/anhk/kube-relay/pkg/k8s"
 	"github.com/anhk/kube-relay/pkg/log"
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,7 +68,7 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 	log.Debug("watch: %v, resourceVersion: %v", watch, resourceVersion)
 	// TODO: resourceVersion如果不存在，返回410 Gone
 
-	if resourceVersion == "0" { // 拿全部数据
+	if resourceVersion == "" || resourceVersion == "0" { // 拿全部数据
 		list, err := res.Lister.List(labels.Everything())
 		if err != nil {
 			ctx.AbortWithError(502, err)
@@ -117,28 +116,16 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 
 func (res *ResourceHandler) AddFunc(obj any) {
 	event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj.(runtime.Object)}}
-	{
-		o := k8s.ObjectToUnstructured(obj)
-		log.Debug("[%v] add [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
-	}
 	res.fifo.Push(&event)
 }
 
 func (res *ResourceHandler) UpdateFunc(oldObj, newObj any) {
 	event := metav1.WatchEvent{Type: "MODIFIED", Object: runtime.RawExtension{Object: newObj.(runtime.Object)}}
-	{
-		o := k8s.ObjectToUnstructured(newObj)
-		log.Debug("[%v] update [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
-	}
 	res.fifo.Push(&event)
 }
 
 func (res *ResourceHandler) DeleteFunc(obj any) {
 	event := metav1.WatchEvent{Type: "DELETED", Object: runtime.RawExtension{Object: obj.(runtime.Object)}}
-	{
-		o := k8s.ObjectToUnstructured(obj)
-		log.Debug("[%v] delete [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
-	}
 	res.fifo.Push(&event)
 }
 
