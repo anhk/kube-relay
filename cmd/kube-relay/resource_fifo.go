@@ -29,7 +29,9 @@ type ResourceFifo struct {
 }
 
 func NewResourceFifo() *ResourceFifo {
-	return &ResourceFifo{version: 1, items: make(map[string]*Item), cond: sync.NewCond(&sync.Mutex{})}
+	rf := &ResourceFifo{version: 1, items: make(map[string]*Item)}
+	rf.cond = sync.NewCond(&rf.mu)
+	return rf
 }
 
 func (fifo *ResourceFifo) Push(event *metav1.WatchEvent) {
@@ -44,6 +46,8 @@ func (fifo *ResourceFifo) Push(event *metav1.WatchEvent) {
 	for fifo.list.Len() > MAX_RESOURCE_FIFO_LEN {
 		fifo.removeOldest()
 	}
+
+	fifo.cond.Broadcast()
 }
 
 func (fifo *ResourceFifo) Get(resourceVersion string) ([]any, string, error) {
@@ -59,7 +63,7 @@ func (fifo *ResourceFifo) Get(resourceVersion string) ([]any, string, error) {
 	it, ok := fifo.items[resourceVersion]
 	if !ok && resVerion < fifo.version { // 不存在则返回`410 Gone`
 		return nil, curVersion, fmt.Errorf("401 Gone")
-	} else if !ok { // TODO: 等待，直到有消息进来
+	} else if !ok {
 		return nil, curVersion, nil
 	}
 
@@ -80,7 +84,21 @@ func (fifo *ResourceFifo) removeOldest() {
 	delete(fifo.items, key.(string))
 }
 
-// // 等待，直到有消息进来
-// func (fifo *ResourceFifo) Wait() {
-// 	fifo.cond.Wait()
-// }
+// 等待，直到有消息进来
+func (fifo *ResourceFifo) Wait(resourceVersion string) error {
+	resVerion, err := strconv.ParseInt(resourceVersion, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	fifo.cond.L.Lock()
+	for resVerion == fifo.version {
+		fifo.cond.Wait()
+	}
+	fifo.cond.L.Unlock()
+	return nil
+}
+
+func (fifo *ResourceFifo) Version() string {
+	return fmt.Sprintf("%d", fifo.version)
+}
