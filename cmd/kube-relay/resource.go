@@ -106,8 +106,7 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 				return false
 			}
 			for _, obj := range list {
-				event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
-				data, _ := json.Marshal(event)
+				data, _ := json.Marshal(obj)
 				ctx.Writer.Write(data)
 			}
 			resourceVersion = curVersion
