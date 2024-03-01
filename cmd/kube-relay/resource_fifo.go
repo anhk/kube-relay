@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/anhk/kube-relay/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -72,6 +73,7 @@ func (fifo *ResourceFifo) Get(resourceVersion string) ([]*metav1.WatchEvent, str
 		it := ele.Value.(*Item)
 		result = append(result, it.event)
 	}
+	log.Debug("get %v", len(result))
 	return result, curVersion, nil
 }
 
@@ -94,7 +96,9 @@ func (fifo *ResourceFifo) Wait(resourceVersion string) error {
 
 	fifo.cond.L.Lock()
 	for resVerion == fifo.version {
+		log.Debug("enter wait -- %v", resourceVersion)
 		fifo.cond.Wait()
+		log.Debug("wait ok")
 	}
 	fifo.cond.L.Unlock()
 	return nil

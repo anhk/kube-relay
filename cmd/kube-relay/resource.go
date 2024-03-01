@@ -109,6 +109,7 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 				data, _ := json.Marshal(obj)
 				ctx.Writer.Write(data)
 			}
+			ctx.Writer.Flush()
 			resourceVersion = curVersion
 		}
 	})
