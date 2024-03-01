@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/anhk/kube-relay/pkg/k8s"
 	"github.com/anhk/kube-relay/pkg/log"
@@ -58,7 +59,8 @@ func (app *App) Run(option *Option) (err error) {
 
 	// Step. 5# 启动HTTP(s)侦听
 	gin.SetMode(gin.ReleaseMode)
-	app.Engine = gin.Default()
+	app.Engine = gin.New()
+	app.Engine.Use(gin.LoggerWithWriter(os.Stdout))
 
 	for gvr, resHandler := range app.resMap {
 		app.SetWatchFunc(&gvr, resHandler.WatchFunc)
