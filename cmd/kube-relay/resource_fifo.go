@@ -39,7 +39,7 @@ func (fifo *ResourceFifo) Push(event *metav1.WatchEvent) {
 	defer fifo.mu.Unlock()
 
 	it := &Item{event: event, key: fmt.Sprintf("%d", fifo.version)}
-	it.ele = fifo.list.PushBack(&it)
+	it.ele = fifo.list.PushBack(it)
 	fifo.items[it.key] = it
 	fifo.version++
 
@@ -50,7 +50,7 @@ func (fifo *ResourceFifo) Push(event *metav1.WatchEvent) {
 	fifo.cond.Broadcast()
 }
 
-func (fifo *ResourceFifo) Get(resourceVersion string) ([]any, string, error) {
+func (fifo *ResourceFifo) Get(resourceVersion string) ([]*metav1.WatchEvent, string, error) {
 	fifo.mu.RLock()
 	defer fifo.mu.RUnlock()
 	curVersion := fmt.Sprintf("%d", fifo.version)
@@ -67,9 +67,10 @@ func (fifo *ResourceFifo) Get(resourceVersion string) ([]any, string, error) {
 		return nil, curVersion, nil
 	}
 
-	var result []any
+	var result []*metav1.WatchEvent
 	for ele := it.ele; ele != nil; ele = ele.Next() {
-		result = append(result, ele.Value)
+		it := ele.Value.(*Item)
+		result = append(result, it.event)
 	}
 	return result, curVersion, nil
 }

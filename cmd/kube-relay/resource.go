@@ -40,6 +40,7 @@ func (res *ResourceHandler) ListFunc(ctx *gin.Context) {
 	name := ctx.Param("name")
 	log.Debug("HTTP: [%v] %v/%v", res.GVR, namespace, name)
 
+	version := res.fifo.Version()
 	list, err := res.Lister.List(labels.Everything())
 	if err != nil {
 		ctx.AbortWithError(502, err)
@@ -50,7 +51,7 @@ func (res *ResourceHandler) ListFunc(ctx *gin.Context) {
 	lw.APIVersion = res.GVR.Version
 	lw.Kind = fmt.Sprintf("%vList", res.apiRes.Kind)
 	lw.Items = list
-	lw.Metadata.ResourceVersion = "1"
+	lw.Metadata.ResourceVersion = version
 
 	ctx.JSON(200, lw)
 }
@@ -68,41 +69,77 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 	log.Debug("watch: %v, resourceVersion: %v", watch, resourceVersion)
 	// TODO: resourceVersion如果不存在，返回410 Gone
 
-	list, err := res.Lister.List(labels.Everything())
-	if err != nil {
-		ctx.AbortWithError(502, err)
-		return
-	}
-
-	for _, obj := range list {
-		event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
-		data, _ := json.Marshal(event)
-		ctx.Writer.Write(data)
+	if resourceVersion == "0" { // 拿全部数据
+		list, err := res.Lister.List(labels.Everything())
+		if err != nil {
+			ctx.AbortWithError(502, err)
+			return
+		}
+		for _, obj := range list {
+			event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
+			data, _ := json.Marshal(event)
+			ctx.Writer.Write(data)
+		}
+	} else {
+		list, curVersion, err := res.fifo.Get(resourceVersion)
+		if err != nil {
+			ctx.AbortWithError(410, err)
+			return
+		}
+		for _, obj := range list {
+			event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
+			data, _ := json.Marshal(event)
+			ctx.Writer.Write(data)
+		}
+		resourceVersion = curVersion
 	}
 
 	ctx.Stream(func(w io.Writer) bool {
-		time.Sleep(time.Second)
-		return true
+		for {
+			if err := res.fifo.Wait(resourceVersion); err != nil {
+				ctx.AbortWithError(502, err)
+				return false
+			}
+			list, curVersion, err := res.fifo.Get(resourceVersion)
+			if err != nil {
+				ctx.AbortWithError(410, err)
+				return false
+			}
+			for _, obj := range list {
+				event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
+				data, _ := json.Marshal(event)
+				ctx.Writer.Write(data)
+			}
+			resourceVersion = curVersion
+		}
 	})
 }
 
 func (res *ResourceHandler) AddFunc(obj any) {
-	o := k8s.ObjectToUnstructured(obj)
-	// log.Debug("[%v] GetAPIVersion: %v", res.gvr.Resource, o.GetAPIVersion())
-
-	// kind := o.GetObjectKind()
-	// log.Debug("[%v] GroupVersionKind: %v", res.gvr.Resource, kind.GroupVersionKind())
-	// log.Debug("GetResourceVersion: %v", o.GetResourceVersion())
-
-	log.Debug("[%v] add [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
+	event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj.(runtime.Object)}}
+	{
+		o := k8s.ObjectToUnstructured(obj)
+		log.Debug("[%v] add [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
+	}
+	res.fifo.Push(&event)
 }
 
 func (res *ResourceHandler) UpdateFunc(oldObj, newObj any) {
-	log.Debug("update")
+	event := metav1.WatchEvent{Type: "MODIFIED", Object: runtime.RawExtension{Object: newObj.(runtime.Object)}}
+	{
+		o := k8s.ObjectToUnstructured(newObj)
+		log.Debug("[%v] update [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
+	}
+	res.fifo.Push(&event)
 }
 
 func (res *ResourceHandler) DeleteFunc(obj any) {
-	log.Debug("delete")
+	event := metav1.WatchEvent{Type: "DELETED", Object: runtime.RawExtension{Object: obj.(runtime.Object)}}
+	{
+		o := k8s.ObjectToUnstructured(obj)
+		log.Debug("[%v] delete [%v] %v/%v", res.GVR.Resource, o.GetKind(), o.GetNamespace(), o.GetName())
+	}
+	res.fifo.Push(&event)
 }
 
 func (res *ResourceHandler) GetInfoByKubeClient(kubeClient *kubernetes.Clientset) error {
