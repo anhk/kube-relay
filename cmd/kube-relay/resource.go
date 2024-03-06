@@ -69,6 +69,7 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 	// TODO: resourceVersion如果不存在，返回410 Gone
 
 	if resourceVersion == "" || resourceVersion == "0" { // 拿全部数据
+		resourceVersion = res.fifo.Version()
 		list, err := res.Lister.List(labels.Everything())
 		if err != nil {
 			ctx.AbortWithError(502, err)
@@ -79,20 +80,8 @@ func (res *ResourceHandler) WatchFunc(ctx *gin.Context) {
 			data, _ := json.Marshal(event)
 			ctx.Writer.Write(data)
 		}
-	} else {
-		list, curVersion, err := res.fifo.Get(resourceVersion)
-		if err != nil {
-			ctx.AbortWithError(410, err)
-			return
-		}
-		for _, obj := range list {
-			event := metav1.WatchEvent{Type: "ADDED", Object: runtime.RawExtension{Object: obj}}
-			data, _ := json.Marshal(event)
-			ctx.Writer.Write(data)
-		}
-		resourceVersion = curVersion
+		ctx.Writer.Flush()
 	}
-	ctx.Writer.Flush()
 
 	ctx.Stream(func(w io.Writer) bool {
 		for {

@@ -1,14 +1,14 @@
 kube-relay test: \
-./cmd/kube-relay/app.go \
-./cmd/kube-relay/option.go \
-./cmd/kube-relay/resource_fifo.go \
-./cmd/kube-relay/main.go \
-./cmd/kube-relay/utils.go \
-./cmd/kube-relay/resource.go \
-./cmd/test/watch.go \
-./cmd/test/main.go \
-./cmd/test/list.go \
 ./pkg/k8s/k8s.go \
 ./pkg/log/log.go \
 ./pkg/cond/cond.go \
+./cmd/test/watch.go \
+./cmd/test/list.go \
+./cmd/test/main.go \
+./cmd/kube-relay/app.go \
+./cmd/kube-relay/utils.go \
+./cmd/kube-relay/resource_fifo.go \
+./cmd/kube-relay/main.go \
+./cmd/kube-relay/option.go \
+./cmd/kube-relay/resource.go \
 
